@@ -8,7 +8,7 @@ function ud = controllerPI(X, Xref, k_vec, theta_r_dot, param, time); % t for ti
     tau_i = 1;
 
     % Controller gains
-    k1 = k_vec(1);
+    k_pos = k_vec(1);
     k_i = k_vec(2);
     k_vel = k_vec(3);
 

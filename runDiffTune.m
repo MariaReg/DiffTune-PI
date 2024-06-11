@@ -45,7 +45,7 @@ dim_controllerParameters = 3;  % dimension of controller parameters
 %% Video simulation
 param.generateVideo = true;
 if param.generateVideo
-    video_obj = VideoWriter('DubinCar.mp4','MPEG-4');
+    video_obj = VideoWriter('PI-controller.mp4','MPEG-4');
     video_obj.FrameRate = 15;
     open(video_obj);
 end
@@ -94,10 +94,10 @@ param.T_Fl = omega_l*b_fr + sgn(omega_l*10)*T_C + 0;
 
 %% Initialize controller gains (must be a vector of size dim_controllerParameters x 1)
 % STSMC (in nonlinear controller for omega_m)
-k1 = 1.453488372 * 2.45 * 0.99; % use proportional gain from PI controller (k_vel = 1.45*2.45)
-k2 = 50;
-k_pos = 25;      % ignored when hand-tuning STSMC
-k_vec = [k1; k2; k_pos];
+k_pos= 25;      % ignored when hand-tuning PI
+k_i = 1.453488372 * 2.45 * 0.99; % use proportional gain from PI controller (k_vel = 1.45*2.45)
+k_vel = 50;
+k_vec = [k_pos; k_i; k_vel];
 
 
 %% Define desired trajectory if necessary
@@ -162,6 +162,8 @@ while (1)
         % integrate the ode dynamics
         [~, sold] = ode45(@(t,X) dynamics(t, X, u, param), [time(k) time(k+1)], X);
         X_storage = [X_storage sold(end,:)'];
+
+        Xref = [X(1), omega_r, X(2), theta_r]
         
     end
     
