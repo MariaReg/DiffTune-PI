@@ -12,8 +12,8 @@ dim_control = 1;  % dimension of control inputs
 dim_controllerParameters = 3;  % dimension of controller parameters
 
 %% Video simulation
-param.generateVideo = true;
-if param.generateVideo
+param1.generateVideo = true;
+if param1.generateVideo
     video_obj = VideoWriter('PI-controller.mp4','MPEG-4');
     video_obj.FrameRate = 15;
     open(video_obj);
@@ -71,10 +71,11 @@ param = [N J_m J_l K_S D_S T_C b_fr];
 
 %% Initialize controller gains (must be a vector of size dim_controllerParameters x 1)
 % STSMC (in nonlinear controller for omega_m)
-k_pos= 25;      % ignored when hand-tuning PI
-k_i = 1.453488372 * 2.45 * 0.99; % use proportional gain from PI controller (k_vel = 1.45*2.45)
-k_vel = 50;
-k_vec = [k_pos; k_i; k_vel];
+k_pos= 5;      % ignored when hand-tuning PI
+% k_i = 1.453488372 * 2.45 * 0.99; % use proportional gain from PI controller (k_vel = 1.45*2.45)
+k_vel = 5;
+k_i = 5;
+k_vec = [k_pos; k_vel; k_i];
 
 
 %% Define desired trajectory if necessary
@@ -82,8 +83,7 @@ freq = 1;   % 1 rad/s
 theta_r = sin(freq * time);   % theta_r is a sine wave with frequency 1 rad/s
 theta_r_dot = freq * cos(freq * time);
 theta_r_2dot = -freq^2 * sin(freq * time);
-omega_r_integ = -cos(freq * time);
-
+theta_r_integ = - cos(freq * time) / freq;
 
 %% Initialize variables for DiffTune iterations
 learningRate = 0.01;  % Calculate  
@@ -125,10 +125,10 @@ while (1)
         Xref = theta_r(k);
  
         % Compute the control action
-        u = controller(X, Xref, k_vec, theta_r_dot(k), theta_r_2dot(k), omega_r_integ(k), param); 
+        u = controller(X, Xref, k_vec, theta_r_dot(k), theta_r_2dot(k), theta_r_integ(k), param, dt); 
 
         % Compute the sensitivity 
-        [dx_dtheta, du_dtheta] = sensitivityComputation(dx_dtheta, X, Xref, theta_r_dot(k), theta_r_2dot(k),omega_r_integ(k), u, param, k_vec, dt);
+        [dx_dtheta, du_dtheta] = sensitivityComputation(dx_dtheta, X, Xref, theta_r_dot(k), theta_r_2dot(k), theta_r_integ(k), u, param, k_vec, dt);
         
         % Accumulate the loss
         % (loss is the squared norm of the position tracking error (error_theta = theta_r - theta_l))
@@ -142,6 +142,8 @@ while (1)
         X_storage = [X_storage sold(end,:)'];   % store the new state
         
     end
+
+    clear global theta_l_integ;
     
 
     % Compute the RMSE (root-mean-square error)
