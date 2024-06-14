@@ -45,36 +45,13 @@ J_l = 1; % kgm^2 -- Moment of inertia
 
 param = [N J_m J_l K_S D_S T_C b_fr];
 
-% % omega_s: Motor Stribeck velocity
-% % Motor electrical parameters
-% param.r_s = 3.6644;           % Ohm -- Stator winding resistance (per phase)
-% param.L_d = 21.4e-3;          % mH -- Rotating field inductance
-% param.L_q = 1.2*L_d;          % mH -- Rotating torque inductance
-% param.P = 6;                  % Non-dimensional -- Number of poles
-% param.k_T = 1.43;             % Nm/A -- Torque constant
-% param.k_E = 87*2*pi*60*0.001; % Vs/rad -- Voltage constant
-% param.lambda_m = 0.3148;      % Vs/rad -- amplitude of the flux linkages
-%                         %   established by the permanent magnet as viewed
-%                         %   from the stator phase windings.
-% 
-% % Static friction
-% % (assuming T_S is the average of T_S_m and T_S_l)
-% param.T_S = (0.0441 + 0.0453) / 2;    % N m
-% 
-% % Load inertia      (not sure...)
-% param.inv_J_l = J_l;
-% 
-% % Params
-% param.T_l = K_s*(theta_m/N - theta_l) + D_s*(omega_m/N - omega_l);
-% param.T_Fm = omega_m*b_fr + sgn(omega_m*10)*T_C;
-% param.T_Fl = omega_l*b_fr + sgn(omega_l*10)*T_C + 0;
 
 %% Initialize controller gains (must be a vector of size dim_controllerParameters x 1)
 % STSMC (in nonlinear controller for omega_m)
-k_pos= 5;      % ignored when hand-tuning PI
+k_pos= 10;      % ignored when hand-tuning PI
 % k_i = 1.453488372 * 2.45 * 0.99; % use proportional gain from PI controller (k_vel = 1.45*2.45)
-k_vel = 5;
-k_i = 5;
+k_vel = 10;
+k_i = 10;
 k_vec = [k_pos; k_vel; k_i];
 
 
@@ -86,7 +63,7 @@ theta_r_2dot = -freq^2 * sin(freq * time);
 theta_r_integ = - cos(freq * time) / freq;
 
 %% Initialize variables for DiffTune iterations
-learningRate = 0.01;  % Calculate  
+learningRate = 0.005;  % Calculate  
 maxIterations = 100;
 itr = 0;
 
@@ -116,7 +93,6 @@ while (1)
     theta_gradient = zeros(1,dim_controllerParameters);
 
     % Initialize reference state and desired trajectory
-    Xref_storage = [X_storage(1:3) ; theta_r(1)];
 
     for k = 1 : length(time) - 1
        
@@ -129,7 +105,7 @@ while (1)
 
         % Compute the sensitivity 
         [dx_dtheta, du_dtheta] = sensitivityComputation(dx_dtheta, X, Xref, theta_r_dot(k), theta_r_2dot(k), theta_r_integ(k), u, param, k_vec, dt);
-        
+
         % Accumulate the loss
         % (loss is the squared norm of the position tracking error (error_theta = theta_r - theta_l))
         loss = loss + (Xref - X(4))^2;
@@ -140,6 +116,18 @@ while (1)
         % Integrate the ode dynamics
         [~,sold] = ode45(@(t,X)dynamics(t, X, u, param),[time(k) time(k+1)], X);
         X_storage = [X_storage sold(end,:)'];   % store the new state
+
+        if (k >= 155)
+            disp(k);
+            disp(theta_gradient);
+        end
+        if isnan(theta_gradient) | (theta_gradient == - inf)
+           disp('k =');
+           disp(k);
+           fprintf('theta_gradient is NAN. Quit.\n');
+           break;
+       end
+
         
     end
 
@@ -156,7 +144,7 @@ while (1)
     % Update the gradient
     gradientUpdate = - learningRate * theta_gradient;
 
-    sanity check
+    % sanity check
     if isnan(gradientUpdate)
        fprintf('gradient is NAN. Quit.\n');
        break;

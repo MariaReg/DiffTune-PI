@@ -50,6 +50,7 @@ function ud = controller(X, Xref, k_vec, theta_r_dot, theta_r_2dot, theta_r_inte
         theta_l_integ = 0;
     end
     theta_l_integ = theta_l_integ + theta_l * dt;
+    test1 = N * theta_r;
     omega_r_integ = k_pos * (theta_r_integ - theta_l_integ) + N * theta_r;
 
     % u = int((omega_r - omega_m) * k_vel * 1/tau_i) + (omega_r - omega_m) * k_vel + omega_r_dot * J_m    

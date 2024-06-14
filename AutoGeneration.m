@@ -34,7 +34,7 @@ param = [N J_m J_l K_S D_S T_C b_fr];
 
 %% casADI-lize all the variables in the computation
 X = MX.sym('X',dim_state);          % system state
-Xref = MX.sym('X_ref', dim_state);  % system reference state
+Xref = MX.sym('X_ref', 1);  % system reference state
 
 % Desired values
 theta_r_dot = MX.sym('theta_r_dot', 1);
