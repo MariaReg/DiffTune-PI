@@ -4,6 +4,9 @@
 clear all;
 import casadi.*;
 
+addpath('mex\');
+addpath('common\');
+
 %% Define the dimensions
 dim_state = 4; % dimension of system state (omega_m, theta_m, omega_r, theta_r)
 dim_control = 1;  % dimension of control inputs (u, theta_r, omega_r)
