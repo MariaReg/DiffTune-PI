@@ -36,7 +36,6 @@ function [ud, omega_r_integ_new] = controller(X, Xref, k_vec, theta_r_dot, theta
     theta_r = Xref;
 
     % Controllers
- 
     % P-controller 
     omega_r = k_pos * (theta_r - theta_l) + N * theta_r_dot;
     omega_r_dot = k_pos * (theta_r_dot - omega_l) + N * theta_r_2dot;
@@ -44,6 +43,6 @@ function [ud, omega_r_integ_new] = controller(X, Xref, k_vec, theta_r_dot, theta
     omega_r_integ_new = omega_r_integ + omega_r * dt;
    
     % PI-controller
-    ud = ((omega_r_integ - theta_m) * k_i) + (omega_r - omega_m) * k_vel + omega_r_dot * J_m;
+    ud = ((omega_r_integ_new - theta_m) * k_i) + (omega_r - omega_m) * k_vel + omega_r_dot * J_m;
 
 end
