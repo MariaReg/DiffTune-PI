@@ -62,7 +62,7 @@ u = MX.sym('u',dim_control);
 dynamics = X + dt * dynamics(t, X, u, param);
                     
 %% Compute the control action, denoted by h
-[h, omega_r] = controller(X, Xref, k_vec, theta_r_dot, theta_r_2dot, omega_r_integ, param, dt);
+h = controller(X, Xref, k_vec, theta_r_dot, theta_r_2dot, omega_r_integ, param);
 
 %% Generate jacobians
 grad_f_X = jacobian(dynamics,X);
@@ -76,8 +76,8 @@ grad_f_X_fcn = Function('grad_f_X_fcn',{X, dt, u, N, J_m, J_l, K_S, D_S, T_C, b_
 grad_f_u_fcn = Function('grad_f_u_fcn',{X, dt, u, N, J_m, J_l, K_S, D_S, T_C, b_fr},{grad_f_u});
 
 % inputs_h denote the input arguments to the dynamics and controller h
-grad_h_X_fcn = Function('grad_h_X_fcn',{X, Xref, k_vec, theta_r_dot, theta_r_2dot, omega_r_integ, J_m, N, dt},{grad_h_X});
-grad_h_theta_fcn = Function('grad_h_theta_fcn',{X, Xref, k_vec, theta_r_dot, theta_r_2dot, omega_r_integ, J_m, N, dt},{grad_h_theta});
+grad_h_X_fcn = Function('grad_h_X_fcn',{X, Xref, k_vec, theta_r_dot, theta_r_2dot, omega_r_integ, J_m, N},{grad_h_X});
+grad_h_theta_fcn = Function('grad_h_theta_fcn',{X, Xref, k_vec, theta_r_dot, theta_r_2dot, omega_r_integ, J_m, N},{grad_h_theta});
 
 %% Generate mex functions
 opts = struct('main', true,...

@@ -1,5 +1,5 @@
 
-
+        
 close all;
 clear all;
 
@@ -101,8 +101,9 @@ while (1)
         Xref = theta_r(k);
  
         % Compute the control action
-        [u, omega_r] = controller(X, Xref, k_vec, theta_r_dot(k), theta_r_2dot(k), omega_r_integ, param, dt); 
+        [u, omega_r] = controller(X, Xref, k_vec, theta_r_dot(k), theta_r_2dot(k), omega_r_integ, param);
 
+        omega_r = controllerP(X, Xref, k_pos, theta_r_dot(k), N);
         display(omega_r);
 
         % Compute the sensitivity 
@@ -119,19 +120,8 @@ while (1)
         [~,sold] = ode45(@(t,X)dynamics(t, X, u, param),[time(k) time(k+1)], X);
         X_storage = [X_storage sold(end,:)'];   % store the new state
 
-        
-        omega_r_integ = omega_r;
-
-       %  if (k >= 155)
-       %      disp(k);
-       %      disp(theta_gradient);
-       %  end
-       %  if isnan(theta_gradient) | (theta_gradient == - inf)
-       %     disp('k =');
-       %     disp(k);
-       %     fprintf('theta_gradient is NAN. Quit.\n');
-       %     break;
-       % end
+        [~,sol_rinteg] = ode45(@(t, omega_r_integ)controllerP(X, Xref, k_pos, theta_r_dot, N),[time(k) time(k+1)], omega_r_integ);
+        omega_r_integ = [sol_rinteg];
 
         
     end
