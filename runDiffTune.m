@@ -83,6 +83,7 @@ while (1)
 
     % Initialize state
     X_storage = zeros(dim_state,1);
+    omega_r_integ = 0;
     
     % Initialize sensitivity
     dx_dtheta = zeros(dim_state,dim_controllerParameters);
@@ -92,9 +93,6 @@ while (1)
     loss = 0;
     theta_gradient = zeros(1,dim_controllerParameters);
 
-    % global integration variabel reset
-    theta_l_integ = 0;
-
 
     for k = 1 : length(time) - 1
        
@@ -103,10 +101,12 @@ while (1)
         Xref = theta_r(k);
  
         % Compute the control action
-        [u, theta_l_integ] = controller(X, Xref, k_vec, theta_r_dot(k), theta_r_2dot(k), theta_r_integ(k), param, dt, theta_l_integ); 
+        [u, omega_r] = controller(X, Xref, k_vec, theta_r_dot(k), theta_r_2dot(k), omega_r_integ, param, dt); 
+
+        display(omega_r);
 
         % Compute the sensitivity 
-        [dx_dtheta, du_dtheta] = sensitivityComputation(dx_dtheta, X, Xref, theta_r_dot(k), theta_r_2dot(k), theta_r_integ(k), u, param, k_vec, dt, theta_l_integ);
+        [dx_dtheta, du_dtheta] = sensitivityComputation(dx_dtheta, X, Xref, theta_r_dot(k), theta_r_2dot(k), omega_r_integ, u, param, k_vec, dt);
 
         % Accumulate the loss
         % (loss is the squared norm of the position tracking error (error_theta = theta_r - theta_l))
@@ -119,16 +119,19 @@ while (1)
         [~,sold] = ode45(@(t,X)dynamics(t, X, u, param),[time(k) time(k+1)], X);
         X_storage = [X_storage sold(end,:)'];   % store the new state
 
-        if (k >= 155)
-            disp(k);
-            disp(theta_gradient);
-        end
-        if isnan(theta_gradient) | (theta_gradient == - inf)
-           disp('k =');
-           disp(k);
-           fprintf('theta_gradient is NAN. Quit.\n');
-           break;
-       end
+        
+        omega_r_integ = omega_r;
+
+       %  if (k >= 155)
+       %      disp(k);
+       %      disp(theta_gradient);
+       %  end
+       %  if isnan(theta_gradient) | (theta_gradient == - inf)
+       %     disp('k =');
+       %     disp(k);
+       %     fprintf('theta_gradient is NAN. Quit.\n');
+       %     break;
+       % end
 
         
     end
