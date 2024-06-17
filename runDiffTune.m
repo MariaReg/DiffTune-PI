@@ -21,7 +21,7 @@ end
 
 %% Define simulation parameters (e.g., sample time dt, duration, etc)
 dt = 0.001;     % 1 kHz
-time = 0:dt:1.5; % 10 s
+time = 0:dt:10; % 10 s
 
 %% constant parameters
 % Motor mechanical parameters
@@ -42,9 +42,9 @@ param = [N J_m J_l K_S D_S T_Cm T_Cl beta_m beta_l];
 
 
 %% Initialize controller gains (must be a vector of size dim_controllerParameters x 1)
-k_pos = 0.1; 
-k_vel = 0.1;
-k_i = 0.1;
+k_pos = 5; 
+k_vel = 1;
+k_i = 0.01;
 k_vec = [k_pos; k_vel; k_i];
 
 
@@ -52,19 +52,18 @@ k_vec = [k_pos; k_vel; k_i];
 freq = 1;   % 1 rad/s
 theta_r = sin(freq * time);   % theta_r is a sine wave with frequency 1 rad/s
 theta_r_dot = freq * cos(freq * time);
-theta_r_2dot = -freq^2 * sin(freq * time);
-% theta_r_integ = - cos(freq * time) / freq;
+theta_r_2dot = - freq^2 * sin(freq * time);
 
 %% Initialize variables for DiffTune iterations
-learningRate = 0.01;  % Calculate  
+learningRate = 0.005;  % Calculate       0.5 kunne ikke finde bedre løsning, 0.05 så rammer den k_vec = 0.1 for alle
 maxIterations = 100;
 itr = 0;
 
 loss_hist = [];  % storage of the loss value in each iteration
 rmse_hist = []; % If we want video
 param_hist = []; % storage of the parameter value in each iteration
-theta_hist = [];
 gradientUpdate = zeros(dim_controllerParameters,1); % define the parameter update at each iteration
+
 
 %% DiffTune iterations
 while (1)
@@ -102,14 +101,10 @@ while (1)
 
         % Accumulate the loss
         % (loss is the squared norm of the position tracking error (error_theta = theta_r - theta_l))
-        loss = loss + (Xref - X(4))^2;
+        loss = loss + norm(Xref - X(4))^2;
          
-        if (k == 4800)
-            disp("hej");
-        end
         % Accumulating the gradient of loss w/ respect to controller parameters
         theta_gradient = theta_gradient + 2 * [0 0 0 X(4)-Xref] * dx_dtheta;
-        theta_hist = [theta_hist theta_gradient];
 
         % Integrate the ode dynamics
         [~,sold] = ode45(@(t,X)dynamics(t, X, u, param),[time(k) time(k+1)], X);
@@ -129,7 +124,6 @@ while (1)
 
         
     end
-    omega_r_integ = 0;
 
     % Compute the RMSE (root-mean-square error)
     RMSE = sqrt(1 / (length(time) - 1) * loss);
