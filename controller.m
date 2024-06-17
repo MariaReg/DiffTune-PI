@@ -15,13 +15,13 @@
 % Xref (ini) = [omega_m; omega_l; theta_m; theta_r]
 % ud: containing motor/load angular velocity/position (4outputs)
 
-function [ud, omega_r] = controller(X, Xref, k_vec, theta_r_dot, theta_r_2dot, omega_r_integ, param, dt)
+function [ud, omega_r_integ_new] = controller(X, Xref, k_vec, theta_r_dot, theta_r_2dot, omega_r_integ, param, dt)
                          
 
     % Controller gains
     k_pos = k_vec(1);
     k_vel = k_vec(2);
-    tau_i = k_vec(3);
+    k_i = k_vec(3);
 
     % Parameters
     N = param(1);
@@ -35,23 +35,16 @@ function [ud, omega_r] = controller(X, Xref, k_vec, theta_r_dot, theta_r_2dot, o
     theta_l = X(4);
     theta_r = Xref;
 
-
-
     % Controllers
  
     % P-controller 
     omega_r = k_pos * (theta_r - theta_l) + N * theta_r_dot;
     omega_r_dot = k_pos * (theta_r_dot - omega_l) + N * theta_r_2dot;
-    
+    omega_r_integ_new = omega_r_integ + omega_r * dt;
    
     % PI-controller
-
-    % theta_l_integ = theta_l_integ + theta_l * dt;
-    % omega_r_integ = k_pos * (theta_r_integ - theta_l_integ) + N * theta_r;
-
-    % u = int((omega_r - omega_m) * k_vel * 1/tau_i) + (omega_r - omega_m) * k_vel + omega_r_dot * J_m    
-    u = ((omega_r_integ - theta_m) * k_vel * 1/tau_i) + (omega_r - omega_m)* k_vel + omega_r_dot * J_m;
-   
+    u = ((omega_r_integ_new - theta_m) * k_i) + (omega_r - omega_m) * k_vel + omega_r_dot * J_m;
+    disp(u);
     ud = u;
 
 end
