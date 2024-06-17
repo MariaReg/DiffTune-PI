@@ -41,17 +41,17 @@ T_C = (0.0223 + 0.0232) / 2;    % N m
 % T_S = (0.0441 + 0.0453) / 2;    % N m
 % Friction constants
 b_fr = 0.0016;  % N m s rad^(-1)
-J_l = 1; % kgm^2 -- Moment of inertia
+J_l = 0.000831; % kg*m^2 -- Moment of inertia
 
 param = [N J_m J_l K_S D_S T_C b_fr];
 
 
 %% Initialize controller gains (must be a vector of size dim_controllerParameters x 1)
 % STSMC (in nonlinear controller for omega_m)
-k_pos= 10;      % ignored when hand-tuning PI
+k_pos= 5;      % ignored when hand-tuning PI
 % k_i = 1.453488372 * 2.45 * 0.99; % use proportional gain from PI controller (k_vel = 1.45*2.45)
-k_vel = 10;
-k_i = 10;
+k_vel = 5;
+k_i = 5;
 k_vec = [k_pos; k_vel; k_i];
 
 
@@ -171,19 +171,20 @@ while (1)
     set(gcf,'color','w');
 
     % Position (theta_l) tracking
-    subplot(3,3,[1,2;4,5]);
+    subplot(1,3,[1 2]);
     plot(time,X_storage(4,:),'DisplayName','actual','LineWidth',1.5);
     hold on;
     plot(time,theta_r,'DisplayName','desired','LineWidth',1.5);
     xlabel('time [s]');
     ylabel('\theta_l [rad]');
     grid on;
-    h_lgd = legend;
-    set(h_lgd,'Position',[0.3811 0.8099 0.1097 0.0846],'FontSize',10);
+    % h_lgd = legend;
+    legend;
+    % set(h_lgd,'Position',[0.3811 0.8099 0.1097 0.0846],'FontSize',10);
     set(gca,'FontSize',10);
 
     % RMSE
-    subplot(3,3,[3;6;9]);
+    subplot(1,3,3);
     plot(rmse_hist,'LineWidth',1.5);
     hold on;
     grid on;
