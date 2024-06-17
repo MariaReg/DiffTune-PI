@@ -14,7 +14,7 @@ dim_controllerParameters = 3;  % dimension of controller parameters
 %% Video simulation
 param1.generateVideo = true;
 if param1.generateVideo
-    video_obj = VideoWriter('PI-controller.mp4','MPEG-4');
+    video_obj = VideoWriter('P-PI-controller.mp4','MPEG-4');
     video_obj.FrameRate = 15;
     open(video_obj);
 end
@@ -27,7 +27,7 @@ time = 0:dt:10; % 10 s
 % Motor mechanical parameters
 N = 1;                  % -- Gear ratio
 J_m = 2.81e-4 + 5.5e-4; % kgm^2 -- Moment of inertia     (8.31e-4 kg m^2)
-J_l = J_m;  % kgm^2 -- Moment of inertia
+J_l = 8.31e-4;  % kgm^2 -- Moment of inertia
 
 % Taken from Table 4.3: Summary of calculated friction and shaft parameters
 % (page 40, Dimitrios Papageorgiou phd thesis)
@@ -42,9 +42,9 @@ param = [N J_m J_l K_S D_S T_Cm T_Cl beta_m beta_l];
 
 
 %% Initialize controller gains (must be a vector of size dim_controllerParameters x 1)
-k_pos = 5; 
-k_vel = 1;
-k_i = 0.01;
+k_pos = 9; 
+k_vel = 0.9;
+k_i = 0.06;
 k_vec = [k_pos; k_vel; k_i];
 
 
@@ -55,8 +55,8 @@ theta_r_dot = freq * cos(freq * time);
 theta_r_2dot = - freq^2 * sin(freq * time);
 
 %% Initialize variables for DiffTune iterations
-learningRate = 0.005;  % Calculate       0.5 kunne ikke finde bedre løsning, 0.05 så rammer den k_vec = 0.1 for alle
-maxIterations = 100;
+learningRate = 0.05;  % Calculate       0.5 kunne ikke finde bedre løsning, 0.05 så rammer den k_vec = 0.1 for alle
+maxIterations = 50;
 itr = 0;
 
 loss_hist = [];  % storage of the loss value in each iteration
@@ -85,7 +85,10 @@ while (1)
     % Initialize loss and gradient of loss
     loss = 0;
     theta_gradient = zeros(1,dim_controllerParameters);
-
+    
+    if (itr == 20)
+        disp("hej");
+    end
 
     for k = 1 : length(time) - 1
        
@@ -181,7 +184,7 @@ while (1)
     grid on;
     stem(length(rmse_hist),rmse_hist(end),'Color',[0 0.4470 0.7410]);
 
-    xlim([0 100]);
+    xlim([0 maxIterations]);
     ylim([0 rmse_hist(1)*1.1]);
     text(50,0.3,['iteration = ' num2str(length(rmse_hist))],'FontSize',12);
     xlabel('iterations');
