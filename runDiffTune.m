@@ -21,38 +21,31 @@ end
 
 %% Define simulation parameters (e.g., sample time dt, duration, etc)
 dt = 0.001;     % 1 kHz
-time = 0:dt:10;
+time = 0:dt:1.5; % 10 s
 
 %% constant parameters
 % Motor mechanical parameters
-J_m = 2.81e-4 + 5.5e-4; % kgm^2 -- Moment of inertia
 N = 1;                  % -- Gear ratio
-% Values of friction and shaft parameters
+J_m = 2.81e-4 + 5.5e-4; % kgm^2 -- Moment of inertia     (8.31e-4 kg m^2)
+J_l = J_m;  % kgm^2 -- Moment of inertia
+
 % Taken from Table 4.3: Summary of calculated friction and shaft parameters
 % (page 40, Dimitrios Papageorgiou phd thesis)
-% Shaft constants
-K_S = 32.94;    % N m rad^(-1)
-D_S = 0.0548;   % N m s rad^(-1)
-% Coulomb friction
-% (assuming T_C is the average of T_C_m and T_C_l)
-T_C = (0.0223 + 0.0232) / 2;    % N m
-% Static friction
-% (assuming T_S is the average of T_S_m and T_S_l)
-% T_S = (0.0441 + 0.0453) / 2;    % N m
-% Friction constants
-b_fr = 0.0016;  % N m s rad^(-1)
-J_l = 0.000831; % kg*m^2 -- Moment of inertia
+K_S = 32.94;        % N m rad^(-1)
+D_S = 0.0548;       % N m s rad^(-1)
+T_Cm = 0.0223;      % N m
+T_Cl = 0.0232;      % N m
+beta_m = 0.0016;    % N m s rad^(-1)
+beta_l = 0.0016;    % N m s rad^(-1)
 
-param = [N J_m J_l K_S D_S T_C b_fr];
+param = [N J_m J_l K_S D_S T_Cm T_Cl beta_m beta_l];
 
 
 %% Initialize controller gains (must be a vector of size dim_controllerParameters x 1)
-% STSMC (in nonlinear controller for omega_m)
-k_pos= 4;      % ignored when hand-tuning PI
-% k_i = 1.453488372 * 2.45 * 0.99; % use proportional gain from PI controller (k_vel = 1.45*2.45)
-k_vel = 4;
-tau_i = 4;
-k_vec = [k_pos; k_vel; tau_i];
+k_pos = 0.1; 
+k_vel = 0.1;
+k_i = 0.1;
+k_vec = [k_pos; k_vel; k_i];
 
 
 %% Define desired trajectory if necessary
@@ -60,16 +53,17 @@ freq = 1;   % 1 rad/s
 theta_r = sin(freq * time);   % theta_r is a sine wave with frequency 1 rad/s
 theta_r_dot = freq * cos(freq * time);
 theta_r_2dot = -freq^2 * sin(freq * time);
-theta_r_integ = - cos(freq * time) / freq;
+% theta_r_integ = - cos(freq * time) / freq;
 
 %% Initialize variables for DiffTune iterations
-learningRate = 2;  % Calculate  
+learningRate = 0.01;  % Calculate  
 maxIterations = 100;
 itr = 0;
 
 loss_hist = [];  % storage of the loss value in each iteration
 rmse_hist = []; % If we want video
 param_hist = []; % storage of the parameter value in each iteration
+theta_hist = [];
 gradientUpdate = zeros(dim_controllerParameters,1); % define the parameter update at each iteration
 
 %% DiffTune iterations
@@ -101,9 +95,7 @@ while (1)
         Xref = theta_r(k);
  
         % Compute the control action
-        [u, omega_r] = controller(X, Xref, k_vec, theta_r_dot(k), theta_r_2dot(k), omega_r_integ, param, dt); 
-
-        display(omega_r);
+        [u, omega_r_integ] = controller(X, Xref, k_vec, theta_r_dot(k), theta_r_2dot(k), omega_r_integ, param, dt); 
 
         % Compute the sensitivity 
         [dx_dtheta, du_dtheta] = sensitivityComputation(dx_dtheta, X, Xref, theta_r_dot(k), theta_r_2dot(k), omega_r_integ, u, param, k_vec, dt);
@@ -111,16 +103,18 @@ while (1)
         % Accumulate the loss
         % (loss is the squared norm of the position tracking error (error_theta = theta_r - theta_l))
         loss = loss + (Xref - X(4))^2;
-
+         
+        if (k == 4800)
+            disp("hej");
+        end
         % Accumulating the gradient of loss w/ respect to controller parameters
         theta_gradient = theta_gradient + 2 * [0 0 0 X(4)-Xref] * dx_dtheta;
+        theta_hist = [theta_hist theta_gradient];
 
         % Integrate the ode dynamics
         [~,sold] = ode45(@(t,X)dynamics(t, X, u, param),[time(k) time(k+1)], X);
         X_storage = [X_storage sold(end,:)'];   % store the new state
 
-        
-        omega_r_integ = omega_r;
 
        %  if (k >= 155)
        %      disp(k);
@@ -135,10 +129,10 @@ while (1)
 
         
     end
-    
+    omega_r_integ = 0;
 
     % Compute the RMSE (root-mean-square error)
-    RMSE = sqrt(1 / length(time) * loss);
+    RMSE = sqrt(1 / (length(time) - 1) * loss);
 
     % Store loss and RMSE
     loss_hist = [loss_hist loss];
@@ -159,12 +153,12 @@ while (1)
 
     % Projection of all parameters to the feasible set
     % We can vary this to match our system
-    if any(k_vec < 0.001)
-       neg_indicator = (k_vec < 0.001);
-       pos_indicator = ~neg_indicator;
-       k_vec_default = 0.001 * ones(dim_controllerParameters,1);
-       k_vec = neg_indicator.*k_vec_default + pos_indicator.*k_vec_default;
-    end
+    % if any(k_vec < 0.001)
+    %    neg_indicator = (k_vec < 0.001);
+    %    pos_indicator = ~neg_indicator;
+    %    k_vec_default = 0.001 * ones(dim_controllerParameters,1);
+    %    k_vec = neg_indicator.*k_vec_default + pos_indicator.*k_vec_default;
+    % end
 
     % store the parameters
     param_hist = [param_hist k_vec];
