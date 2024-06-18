@@ -42,9 +42,9 @@ param = [N J_m J_l K_S D_S T_Cm T_Cl beta_m beta_l];
 
 
 %% Initialize controller gains (must be a vector of size dim_controllerParameters x 1)
-k_pos = 9; 
-k_vel = 0.9;
-k_i = 0.06;
+k_pos = 1; 
+k_vel = 1;
+k_i = 2;
 k_vec = [k_pos; k_vel; k_i];
 
 
@@ -86,9 +86,9 @@ while (1)
     loss = 0;
     theta_gradient = zeros(1,dim_controllerParameters);
     
-    if (itr == 20)
-        disp("hej");
-    end
+    % if (itr == 14)
+    %     disp("hej");
+    % end
 
     for k = 1 : length(time) - 1
        
@@ -110,7 +110,7 @@ while (1)
         theta_gradient = theta_gradient + 2 * [0 0 0 X(4)-Xref] * dx_dtheta;
 
         % Integrate the ode dynamics
-        [~,sold] = ode45(@(t,X)dynamics(t, X, u, param),[time(k) time(k+1)], X);
+        [~,sold] = ode45(@(t,X)dynamics(t, X, u, param'),[time(k) time(k+1)], X);
         X_storage = [X_storage sold(end,:)'];   % store the new state
 
 
